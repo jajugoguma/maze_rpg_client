@@ -52,10 +52,10 @@ void Connection::read_data(vector<string> datas) {
 	str_vector.clear();
 	buf[0] = '\0';
 
-	string senddata = "_,";
+	string senddata = "_,,";
 
 	for (int i = 0; i < datas.size(); i++) {
-		senddata += datas[i] + ",";
+		senddata += datas[i] + ",,";
 	}
 	senddata += "\n";
 
@@ -134,10 +134,10 @@ void Connection::read_data(vector<string> datas) {
 string Connection::send_data(vector<string> datas) {
 	str_vector.clear();
 
-	string senddata = "_,";
+	string senddata = "_,,";
 
 	for (int i = 0; i < datas.size(); i++) {
-		senddata += datas[i] + ",";
+		senddata += datas[i] + ",,";
 	}
 	senddata += "\n";
 

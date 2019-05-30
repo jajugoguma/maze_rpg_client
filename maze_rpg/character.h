@@ -41,4 +41,5 @@ public:
 	int get_luck();
 	void add_to_inven(Item item);
 	void load_inven(Item item, int amount);
+	void set_AP(int);
 };

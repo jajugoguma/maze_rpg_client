@@ -30,6 +30,8 @@ MCI_PLAY_PARMS mciPlay;
 #define KEY_SLASH 47
 #define KEY_A 97
 #define KEY_R 114
+#define KEY_I 105
+#define KEY_S 115
 
 using namespace std;
 
@@ -57,9 +59,17 @@ Maze_pos dest;
 Maze_pos current;
 
 string messages[20] = { " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
+string backuped_msgs[20] = { " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " " };
 int top;
+int backuped_top;
 
 int dwID;
+
+Item *using_item = NULL;
+int remain_turn = -1;
+int *i_target = NULL;
+double *d_target = NULL;
+
 
 Connection *conn;
 
@@ -100,7 +110,9 @@ void clear_msgs();
 
 void item_store();
 
-void show_inven();
+void show_inven(int state = 0);
+
+void use_item(int, int);
 //Fixed cursor row (Ignore press enter when input empty string)
 void t_fix_cur_row(int x, int y);
 
@@ -140,6 +152,12 @@ void t_keystrok_sound();
 
 void get_item_infos();
 
+void status();
+
+void save_msgs();
+
+void restore_msgs();
+
 BOOL CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
@@ -172,6 +190,9 @@ int main() {
 		printf("Could not set control handler");
 		return 1;
 	}
+
+	//cout << fixed;
+	//cout.precision(2);
 
 	cur_visi_swit(false);
 	set_font_size();
@@ -220,7 +241,7 @@ void get_item_infos() {
 void t_keystrok_sound() {
 	while (TRUE) {
 		//rewind(stdin);
-		while (!_kbhit);
+		while (!_kbhit());
 		PlaySound("audio/keystrok.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 	}
 }
@@ -629,9 +650,10 @@ bool choose_character() {
 
 				for (int i = 0; i < conn->str_vector.size(); i++) {
 					for (Item tmp : items) {
-						atoi(conn->str_vector[i]->at(0).c_str()) == tmp.get_item_no();
-						selected_char->load_inven(tmp, atoi(conn->str_vector[i]->at(1).c_str()));
-						break;
+						if (atoi(conn->str_vector[i]->at(0).c_str()) == tmp.get_item_no()) {
+							selected_char->load_inven(tmp, atoi(conn->str_vector[i]->at(1).c_str()));
+							break;
+						}
 					}
 				}
 
@@ -755,6 +777,7 @@ void play() {
 			print_msg("/save : Save all conditions");
 			print_msg("inven : show inventory");
 			print_msg("store : Enter item store");
+			print_msg("status : Show and Set status");
 			print_msg("start : Enter next maze");
 			print_msg("##### Commands #####");
 			print_msg(" ");
@@ -768,6 +791,9 @@ void play() {
 		}
 		else if (input == "store") {
 			item_store();
+		}
+		else if (input == "status") {
+			status();
 		}
 		else if (input == "inven") {
 			show_inven();
@@ -794,18 +820,20 @@ void play() {
 void print_main_UI() {
 	system("cls");
 
-	auto char_infos = selected_char->get_infos();
-
 	set_cursor(3, ROWS - 5);
-	cout << get<0>(char_infos);
+	cout << selected_char->name;
 	set_cursor(3, ROWS - 4);
-	cout << "Lv. " << get<1>(char_infos);
+	cout << "Lv. " << selected_char->level;
 	set_cursor(3, ROWS - 3);
 	cout << "Stage : " << selected_char->state_num;
 	set_cursor(15, ROWS - 5);
 	cout << "HP";
 	set_cursor(15, ROWS - 4);
-	cout << get<3>(char_infos) << " / " << get<2>(char_infos);
+	cout << selected_char->cur_hp << " / " << selected_char->max_hp;
+	set_cursor(15, ROWS - 3);
+	cout << "EXP";
+	set_cursor(15, ROWS - 2);
+	cout << selected_char->exp << " / " << selected_char->level * 10;
 
 	string menu_input = ">>       ";
 	set_cursor((COLUMNS - menu_input.length()) / 2, 10);
@@ -844,7 +872,7 @@ void clear_msgs() {
 }
 
 void item_store() {
-
+	save_msgs();
 	int input = -1;
 
 	clear_msgs();
@@ -853,6 +881,8 @@ void item_store() {
 		print_msg("Balance : " + to_string(selected_char->money));
 		print_msg("");
 
+		print_msg("[OTHER] EXIT");
+		print_msg("");
 		for (int i = items.size() - 1; i >= 0; i--) {
 			Item tmp = items[i];
 			print_msg(tmp.get_explain());
@@ -866,7 +896,6 @@ void item_store() {
 		else
 			print_msg("떼껄룩.");
 		print_msg("##### store #####");
-		print_msg("");
 
 		input = atoi(input_in_game().c_str());
 
@@ -886,28 +915,99 @@ void item_store() {
 		else {
 			print_msg("Bye");
 			print_msg("");
+			Sleep(1000);
+			restore_msgs();
 			break;
 		}
 	}
 }
 
-void show_inven() {
-	if (selected_char->inventory.empty()) {
+void show_inven(int state) {
+	while (true) {
+		if (selected_char->inventory.empty()) {
+			print_msg("");
+			print_msg("Inventory is empty");
+			return;
+		}
+		clear_msgs();
+		print_msg("[OTHER] EXIT");
+		for (int i = selected_char->inventory.size() - 1; i >= 0; i--) {
+			print_msg("[" + to_string(i + 1) + "] " + selected_char->inventory[i].get_name() + " | QTY : " + to_string(selected_char->inventory_cnt[i]));
+		}
 		print_msg("");
-		print_msg("Inventory is empty");
+		print_msg("##### Inventory #####");
+		print_msg("");
+
+		int input = atoi(input_in_game().c_str());
+
+		if (input >= 1 && input <= selected_char->inventory.size()) {
+			use_item(input - 1, state);
+		}
+		else
+			break;
+	}
+	print_msg("");
+	print_msg("EXIT");
+	Sleep(1000);
+	clear_msgs();
+}
+
+void use_item(int item_no, int state) {
+	Item *use = &selected_char->inventory[item_no];
+	int *use_cnt = &selected_char->inventory_cnt[item_no];
+
+	if (state = 0) {
+		if (use->get_name().find("HP") == string::npos) {
+			print_msg("This item can not be used now");
+			return;
+		}
+	}
+	else if (remain_turn > 0) {
+		print_msg("Can not use item now");
 		return;
 	}
+	else {
+		print_msg("Use " + use->get_name());
+		(*use_cnt)--;
 
-	clear_msgs();
-	for (int i = selected_char->inventory.size() - 1 ; i >= 0 ; i--) {
-		print_msg("[" + to_string(i + 1) + "] " + selected_char->inventory[i].get_name() + " | QTY : " + to_string(selected_char->inventory_cnt[i]));
+		for (int i = 0; i < items.size(); i++) {
+			if (items[i].get_item_no() == use->get_item_no()) {
+				using_item = &items[i];
+				remain_turn = using_item->get_duration();
+
+				if (using_item->get_name().find("HP") != string::npos)
+					d_target = &selected_char->cur_hp;
+				else if (using_item->get_name().find("ATK") != string::npos)
+					d_target = &selected_char->atk;
+				else if (using_item->get_name().find("DEF") != string::npos)
+					d_target = &selected_char->def;
+				else if (using_item->get_name().find("LUCK") != string::npos)
+					i_target = &selected_char->status[2];
+
+				if (d_target != NULL) {
+					(*d_target) += using_item->get_effect();
+				}
+				else if (i_target != NULL) {
+					(*i_target) += using_item->get_effect();
+				}
+
+				update_ui_maze();
+				break;
+			}
+		}
+
+		if ((*use_cnt) <= 0) {
+			selected_char->inventory.erase(selected_char->inventory.begin() + item_no);
+			selected_char->inventory_cnt.erase(selected_char->inventory_cnt.begin() + item_no);
+		}
 	}
-	print_msg("");
-	print_msg("Inventory");
-	print_msg("");
+	Sleep(1000);
 }
 
 void start_stage() {
+	clear_msgs();
+	print_msg("Enter The MAZE");
+
 	current = { start.col, start.row };
 	string input;
 	int c = 0;
@@ -972,6 +1072,12 @@ void start_stage() {
 				c = 0;
 			}
 			break;
+		case KEY_I:
+			show_inven();
+			break;
+		case KEY_S:
+			status();
+			break;
 		case KEY_SLASH:
 			input_com_maze();
 			c = 0;
@@ -1020,17 +1126,20 @@ void input_com_maze() {
 }
 
 void update_ui_maze() {
-	auto char_infos = selected_char->get_infos();
 	set_cursor(3, ROWS - 5);
-	cout << get<0>(char_infos);
+	cout << selected_char->name;
 	set_cursor(3, ROWS - 4);
-	cout << "Lv. " << get<1>(char_infos);
+	cout << "Lv. " << selected_char->level;
 	set_cursor(3, ROWS - 3);
 	cout << "Stage : " << selected_char->state_num;
 	set_cursor(15, ROWS - 5);
 	cout << "HP";
 	set_cursor(15, ROWS - 4);
-	cout << get<3>(char_infos) << " / " << get<2>(char_infos);
+	cout << selected_char->cur_hp << " / " << selected_char->max_hp;
+	set_cursor(15, ROWS - 3);
+	cout << "EXP";
+	set_cursor(15, ROWS - 2);
+	cout << selected_char->exp << " / " << selected_char->level * 10;
 }
 
 void print_maze() {
@@ -1082,28 +1191,34 @@ void print_maze() {
 }
 
 bool fight_enemy() {
+	save_msgs();
+
 	if (spawn_enemy()) {
 		PlaySound("audio/monster.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_LOOP); // 반복재생
 		print_msg("Enemy has appeared");
-		int e_atk = 1;
-		double e_hp = selected_char->cur_hp;
+		double e_atk = selected_char->state_num * 1.5;
+		double e_hp = selected_char->state_num * 10 + 40;
 		while (e_hp > 0) {
 			srand((unsigned)time(NULL));
 			int c = 0;
+			boolean is_act = true;
+
+			if (remain_turn >= 0)
+				remain_turn--;
 
 			switch ((c = _getch())) {
 			case KEY_A:
 				if (rand() % 100 < selected_char->get_luck()) {
-					e_hp = e_hp - selected_char->get_atk() * 2 <= 0 ? 0 : e_hp - selected_char->get_atk() * 2;
+					e_hp = (e_hp - selected_char->get_atk() * 2) <= 0 ? 0 : (e_hp - selected_char->get_atk() * 2);
 					print_msg("Critical Hit! (" + to_string(e_hp) + ")");
 					print_msg("");
 				}
 				else {
-					e_hp = e_hp - selected_char->get_atk() <= 0 ? 0 : e_hp - selected_char->get_atk() * 2;
+					e_hp = (e_hp - selected_char->get_atk()) <= 0 ? 0 : (e_hp - selected_char->get_atk());
 					print_msg("Attack! (" + to_string(e_hp) + ")");
 					print_msg("");
 				}
-				PlaySound("audio/attack.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
+				PlaySound("audio/attack.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 				break;
 			case KEY_R:
 				if (rand() % 100 < selected_char->get_luck()) {
@@ -1113,45 +1228,71 @@ bool fight_enemy() {
 				else
 					print_msg("Fail to run away...");
 				break;
+			case KEY_I:
+				show_inven(1);
+				is_act = false;
+				break;
 			case KEY_SLASH:
 				input_com_maze();
 				continue;
 			default:
 				continue;
 			}
-			if (e_hp <= 0) {
-				PlaySound(NULL, 0, 0); //반복재생 종료
-				PlaySound("audio/monster_dead.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
-				print_msg("Defeated the enemy");
-				selected_char->exp += 10;
-				level_up();
-				update_ui_maze();
-				return true;
-			}
+			if (is_act) {
+				if (e_hp <= 0) {
+					PlaySound(NULL, 0, 0); //반복재생 종료
+					PlaySound("audio/monster_dead.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 
-			selected_char->add_cur_hp(-e_atk);
-			print_msg("Attacked! (" + to_string(selected_char->get_cur_hp()) + ")");
-			print_msg("");
-			PlaySound("audio/attacked.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
-			update_ui_maze();
+					clear_msgs();
+					print_msg("Defeated the enemy");
 
-			if (selected_char->get_cur_hp() <= 0) {
-				PlaySound(NULL, 0, 0); //반복재생 종료
-				clear_msgs();
-				PlaySound("audio/death.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
-				print_msg("You died");
-				selected_char->set_cur_hp(selected_char->get_max_hp());
+					selected_char->exp += 10 + selected_char->state_num;
+					selected_char->money += selected_char->state_num * 5 + rand() % (selected_char->get_luck());
 
-				string empty = "                              ";
+					level_up();
+					update_ui_maze();
 
-				for (int i = 0; i < 10; i++) {
-					set_cursor(H_COLUMNS - 15, i);
-					cout << empty;
+					Sleep(1000);
+					restore_msgs();
+					return true;
 				}
 
-				print_msg("Return to base...");
+				selected_char->add_cur_hp(selected_char->def - e_atk);
+				print_msg("Attacked! (" + to_string(selected_char->get_cur_hp()) + ")");
+				print_msg("");
+				PlaySound("audio/attacked.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 				update_ui_maze();
-				return false;
+
+				if (selected_char->get_cur_hp() <= 0) {
+					PlaySound(NULL, 0, 0); //반복재생 종료
+					clear_msgs();
+					PlaySound("audio/death.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
+					print_msg("You died");
+					selected_char->set_cur_hp(selected_char->get_max_hp());
+
+					string empty = "                              ";
+
+					for (int i = 0; i < 10; i++) {
+						set_cursor(H_COLUMNS - 15, i);
+						cout << empty;
+					}
+
+					print_msg("Return to base...");
+					update_ui_maze();
+					return false;
+				}
+			}
+
+			if (remain_turn == 0) {
+				if (d_target != NULL)
+					(*d_target) -= using_item->get_effect();
+				if (i_target != NULL)
+					(*i_target) -= using_item->get_effect();
+
+				using_item = NULL;
+				int remain_turn = -1;
+				int *d_target = NULL;
+				int *i_target = NULL;
 			}
 		}
 	}
@@ -1170,5 +1311,77 @@ void level_up() {
 		selected_char->exp -= 10 * selected_char->level;
 		selected_char->level++;
 		selected_char->ap += 5;
+	}
+}
+
+void status() {
+	save_msgs();
+	while (true) {
+		clear_msgs();
+		print_msg("[OTHER] EXIT");
+		print_msg("[1] APPLY AP");
+		print_msg("");
+		print_msg("AP : " + to_string(selected_char->ap));
+		print_msg("");
+		print_msg("LUCK : " + to_string(selected_char->status[2]));
+		print_msg("CON : " + to_string(selected_char->status[1]));
+		print_msg("STR : " + to_string(selected_char->status[0]));
+		print_msg("");
+		print_msg("Current HP : " + to_string(selected_char->cur_hp));
+		print_msg("MAX HP : " + to_string(selected_char->max_hp));
+		print_msg("DEF : " + to_string(selected_char->def));
+		print_msg("ATK : " + to_string(selected_char->atk));
+		int input = atoi(input_in_game().c_str());
+
+		if (input == 1) {
+			if (selected_char->ap > 0) {
+				clear_msgs();
+				print_msg("[1] STR  [2] CON  [3] LUCK");
+				print_msg("Select the number you want to set AP");
+
+				int num = atoi(input_in_game().c_str());
+
+				switch (num) {
+				case 1:
+				case 2:
+				case 3:
+					selected_char->set_AP(num);
+					update_ui_maze();
+					break;
+				default:
+					clear_msgs();
+					print_msg("");
+					print_msg("Worng number");
+					Sleep(1000);
+					break;
+				}
+			}
+			else {
+				clear_msgs();
+				print_msg("");
+				print_msg("Not enough AP");
+				Sleep(1000);
+			}
+		}
+		else {
+			break;
+		}
+	}
+	restore_msgs();
+}
+
+void save_msgs() {
+	backuped_top = top;
+	for (int i = 0; i < 20; i++)
+		backuped_msgs[i] = messages[i];
+}
+
+void restore_msgs() {
+	top = backuped_top;
+	int index = top;
+
+	for (int i = 0; i < 20; i++) {
+		print_msg(backuped_msgs[index]);
+		index = index + 1 > 19 ? 0 : index + 1;
 	}
 }

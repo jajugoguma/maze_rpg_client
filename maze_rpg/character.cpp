@@ -84,3 +84,13 @@ void CHARACTER::load_inven(Item item, int amount) {
 	inventory.push_back(item);
 	inventory_cnt.push_back(amount);
 }
+
+// ATK : 1 | CON : 2 | LUCK : 3 //
+void CHARACTER::set_AP(int status_num) {
+	this->ap--;
+	this->status[status_num - 1]++;
+
+	this->max_hp = status[1] * 10;
+	this->atk = status[0] * 0.7;
+	this->def = status[0] * 0.2 + status[1] * 0.4;
+}
