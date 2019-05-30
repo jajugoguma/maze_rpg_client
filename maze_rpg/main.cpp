@@ -315,6 +315,11 @@ void t_save() {
 	data.push_back(to_string(selected_char->ap));
 	data.push_back(to_string(selected_char->money));
 
+	for (int i = 0; i < selected_char->inventory.size(); i++) {
+		data.push_back(to_string(selected_char->inventory[i].get_item_no()));
+		data.push_back(to_string(selected_char->inventory_cnt[i]));
+	}
+
 	string result = conn->send_data(data);
 	print_msg(result);
 }
@@ -616,6 +621,20 @@ bool choose_character() {
 			else {
 				clear_in_main();
 				selected_char = log_in_user->character[input - 1];
+
+				vector<string> data;
+				data.push_back("LOADITEM");
+				data.push_back(selected_char->name);
+				conn->read_data(data);
+
+				for (int i = 0; i < conn->str_vector.size(); i++) {
+					for (Item tmp : items) {
+						atoi(conn->str_vector[i]->at(0).c_str()) == tmp.get_item_no();
+						selected_char->load_inven(tmp, atoi(conn->str_vector[i]->at(1).c_str()));
+						break;
+					}
+				}
+
 				string s = "Play";
 				set_cursor((COLUMNS - s.length()) / 2, H_ROWS + 2);
 				cout << s;
@@ -762,7 +781,8 @@ void play() {
 		else if (input == "/exit") {
 			print_msg("Logged out in 5 seconds.");
 			clear_msgs();
-			Sleep(5000);
+			delete(log_in_user);
+			Sleep(1000);
 			system("cls");
 			return;
 		}
@@ -800,7 +820,7 @@ void print_main_UI() {
 					"You can get help by typing /help." };
 
 	for (int i = 0; i < 6; i++) {
-		Sleep(500);
+		Sleep(300);
 		print_msg(msg[i]);
 	}
 }
@@ -883,7 +903,7 @@ void show_inven() {
 		print_msg("[" + to_string(i + 1) + "] " + selected_char->inventory[i].get_name() + " | QTY : " + to_string(selected_char->inventory_cnt[i]));
 	}
 	print_msg("");
-	print_msg("Invnetory");
+	print_msg("Inventory");
 	print_msg("");
 }
 

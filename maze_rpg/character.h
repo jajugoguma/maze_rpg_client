@@ -40,4 +40,5 @@ public:
 	double get_atk();
 	int get_luck();
 	void add_to_inven(Item item);
+	void load_inven(Item item, int amount);
 };

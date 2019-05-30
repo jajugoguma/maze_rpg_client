@@ -76,8 +76,11 @@ void CHARACTER::add_to_inven(Item item) {
 			return;
 		}
 	}
-
 	inventory.push_back(item);
 	inventory_cnt.push_back(1);
+}
 
+void CHARACTER::load_inven(Item item, int amount) {
+	inventory.push_back(item);
+	inventory_cnt.push_back(amount);
 }

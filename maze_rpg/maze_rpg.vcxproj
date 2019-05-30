@@ -117,7 +117,7 @@
   <ItemGroup>
     <ClCompile Include="character.cpp" />
     <ClCompile Include="con_to_server.cpp" />
-    <ClCompile Include="itme.cpp" />
+    <ClCompile Include="item.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="user.cpp" />
   </ItemGroup>

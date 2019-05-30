@@ -4,7 +4,10 @@ USER::USER(string id, string passwd) {
 	this->id = id;
 	this->passwd = passwd;
 }
-USER::~USER() {}
+USER::~USER() {
+	for (CHARACTER *tmp : character)
+		delete(tmp);
+}
 
 bool USER::create_character(string name) {
 	if (created_char < MAX_CHARS) {
