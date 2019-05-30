@@ -127,13 +127,21 @@
     <ClInclude Include="con_to_server.h" />
     <ClInclude Include="item.h" />
     <ClInclude Include="maze_generators.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="resource1.h" />
     <ClInclude Include="resource2.h" />
     <ClInclude Include="user.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="maze_rpg.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="audio\Apprehensive_at_Best.mp3" />
+    <Media Include="audio\attack.wav" />
+    <Media Include="audio\attacked.wav" />
+    <Media Include="audio\death.wav" />
+    <Media Include="audio\footsteps.wav" />
+    <Media Include="audio\keystrok.wav" />
+    <Media Include="audio\monster.wav" />
+    <Media Include="audio\monster_dead.wav" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />

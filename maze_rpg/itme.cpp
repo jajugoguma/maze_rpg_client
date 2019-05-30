@@ -1,11 +1,12 @@
 #include "item.h"
 
-Item::Item(int itme_no, string name, int class_no, int effect, string explain) {
-	this->itme_no = itme_no;
-	this->name = name;
-	this->class_no = class_no;
-	this->effect = effect;
-	this->explain = explain;
+Item::Item(vector<string> data) {
+	this->itme_no = atoi(data[0].c_str());
+	this->name = data[1];
+	this->effect = atoi(data[2].c_str());
+	this->explain = data[3];
+	this->duration = atoi(data[4].c_str());
+	this->cost = atoi(data[5].c_str());
 }
 
 Item::~Item() {}
@@ -18,14 +19,18 @@ string Item::get_name() {
 	return this->name;
 }
 
-int Item::get_class_no() {
-	return this->class_no;
-}
-
 int Item::get_effect() {
 	return this->effect;
 }
 
 string Item::get_explain() {
 	return this->explain;
+}
+
+int Item::get_duration() {
+	return this->duration;
+}
+
+int Item::get_cost() {
+	return this->cost;
 }

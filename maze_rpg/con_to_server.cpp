@@ -47,6 +47,8 @@ void Connection::con_to_server() {
 }
 
 void Connection::read_data(vector<string> datas) {
+	for (vector<string> *tmp : str_vector)
+		delete(tmp);
 	str_vector.clear();
 	buf[0] = '\0';
 
@@ -80,7 +82,25 @@ void Connection::read_data(vector<string> datas) {
 
 		char *token = strtok(buf, ",");
 		while (token) {
-			if (j == 12) {
+			if (j == 13) {
+				i++;
+				j = 0;
+				str_vector.push_back(new vector<string>);
+			}
+
+			str_vector[i]->push_back(token);
+			token = strtok(NULL, ",");
+			j++;
+		}
+	}
+	else if (datas[0] == "ITEM" && buf[0] != '\0') {
+		int i = 0, j = 0;
+
+		str_vector.push_back(new vector<string>);
+
+		char *token = strtok(buf, ",");
+		while (token) {
+			if (j == 6) {
 				i++;
 				j = 0;
 				str_vector.push_back(new vector<string>);

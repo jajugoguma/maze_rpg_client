@@ -22,6 +22,7 @@ public:
 	double atk; //attack : str * 0.7
 	double def; //defense : str * 0.2 + con * 0.4
 	int ap;
+	int money;
 
 	vector<Item> inventory;
 	vector<int> inventory_cnt;

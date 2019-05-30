@@ -42,7 +42,7 @@ public:
 	int numbytes;
 	char buf[MAXDATASIZE];
 	struct sockaddr_in their_addr; // connector's address information 
-	vector<vector<string> *> str_vector;
+	vector<vector<string> *> str_vector; 
 
 	WSADATA wsa;
 

@@ -14,6 +14,7 @@ CHARACTER::CHARACTER(string user_id, string name) {
 	this->def = status[0] * 0.2 + status[1] * 0.4;
 	this->state_num = 1;
 	this->ap = 0;
+	this->money = 500;
 }
 
 CHARACTER::CHARACTER(string user_id, vector<string> data) {
@@ -30,6 +31,7 @@ CHARACTER::CHARACTER(string user_id, vector<string> data) {
 	this->status[1] = atoi(data[9].c_str());
 	this->status[2] = atoi(data[10].c_str());
 	this->ap = atoi(data[11].c_str());
+	this->money = atoi(data[12].c_str());
 }
 
 CHARACTER::~CHARACTER() {}
@@ -69,11 +71,13 @@ int CHARACTER::get_luck() {
 void CHARACTER::add_to_inven(Item item) {
 	int i;
 	for (i = 0; i < inventory.size(); i++) {
-		if (inventory[i] == item)
+		if (inventory[i] == item) {
 			inventory_cnt[i]++;
+			return;
+		}
 	}
-	if (i == inventory.size()) {
-		inventory.push_back(item);
-		inventory_cnt.push_back(1);
-	}
+
+	inventory.push_back(item);
+	inventory_cnt.push_back(1);
+
 }

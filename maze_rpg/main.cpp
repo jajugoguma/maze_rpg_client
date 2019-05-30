@@ -51,6 +51,7 @@ int num_users = 0;
 bool cursor_on;
 COORD pos;
 vector< vector<int> > maze;
+vector<Item> items;
 Maze_pos start;
 Maze_pos dest;
 Maze_pos current;
@@ -84,6 +85,8 @@ void cur_visi_swit(bool flag);
 bool choose_character();
 
 void create_char();
+
+void delete_char();
 //Dispose of input error when input wrong type.
 void input_error();
 
@@ -96,6 +99,8 @@ void print_msg(string msg);
 void clear_msgs();
 
 void item_store();
+
+void show_inven();
 //Fixed cursor row (Ignore press enter when input empty string)
 void t_fix_cur_row(int x, int y);
 
@@ -132,6 +137,8 @@ void bgm_on();
 void bgm_off();
 
 void t_keystrok_sound();
+
+void get_item_infos();
 
 BOOL CtrlHandler(DWORD fdwCtrlType)
 {
@@ -170,6 +177,7 @@ int main() {
 	set_font_size();
 	system("mode con cols=79 lines=39 | title MAZE RPG");
 	conn = new Connection();
+	get_item_infos();
 	print_welcome();
 	initial_menu();
 
@@ -194,6 +202,19 @@ void bgm_on() {
 
 void bgm_off() {
 	mciSendCommand(dwID, MCI_CLOSE, 0, (DWORD)(LPVOID)NULL); //BGM 종료
+}
+
+void get_item_infos() {
+
+
+	vector<string> data;
+	data.push_back("ITEM");
+	conn->read_data(data);
+
+	for (int i = 0; i < conn->str_vector.size(); i++) {
+		Item tmp(*conn->str_vector[i]);
+		items.push_back(tmp);
+	}
 }
 
 void t_keystrok_sound() {
@@ -292,6 +313,7 @@ void t_save() {
 	data.push_back(to_string(selected_char->status[1]));
 	data.push_back(to_string(selected_char->status[2]));
 	data.push_back(to_string(selected_char->ap));
+	data.push_back(to_string(selected_char->money));
 
 	string result = conn->send_data(data);
 	print_msg(result);
@@ -414,7 +436,7 @@ void initial_menu() {
 		set_cursor((COLUMNS - menu_input.length()) / 2, H_ROWS + i + 3);
 		cout << UNDERLINE << menu_input;
 		cout << DEUNDERLINE;
-		input = stoi(inputs(H_COLUMNS, H_ROWS + i + 3));
+		input = atoi(inputs(H_COLUMNS, H_ROWS + i + 3).c_str());
 
 		switch (input) {
 		case 1:
@@ -480,7 +502,7 @@ void sign_up() {
 	string id, passwd;
 	string menus[2] = { "ID :           ", "PW :           " };
 
-	
+
 	clear_in_main();
 	for (i = 0; i < 2; i++) {
 		set_cursor((COLUMNS - menus[i].length()) / 2, H_ROWS + 2 + i);
@@ -565,6 +587,10 @@ bool choose_character() {
 		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
 		cout << tmp;
 
+		tmp = "[" + to_string(MAX_CHARS + 2) + "] Delete";
+		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
+		cout << tmp;
+
 		tmp = "[OTHER] Log out";
 		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
 		cout << tmp;
@@ -573,12 +599,8 @@ bool choose_character() {
 		set_cursor((COLUMNS - menu_input.length()) / 2, H_ROWS + (++i) + 3);
 		cout << UNDERLINE << menu_input;
 		cout << DEUNDERLINE;
-		try {
-			input = stoi(inputs(H_COLUMNS, H_ROWS + i + 3));
-		}
-		catch (invalid_argument&) {
-			input = -1;
-		}
+		input = atoi(inputs(H_COLUMNS, H_ROWS + i + 3).c_str());
+
 
 		switch (input) {
 		case 1:
@@ -604,6 +626,9 @@ bool choose_character() {
 		case 4:
 			create_char();
 			break;
+		case 5:
+			delete_char();
+			break;
 		default:
 			return false;
 		}
@@ -612,7 +637,7 @@ bool choose_character() {
 }
 
 void create_char() {
-	int i = -1, limit = log_in_user->get_created_char();
+	int limit = log_in_user->get_created_char();
 	string name, s;
 	string menus = "NAME :           ";
 
@@ -625,29 +650,65 @@ void create_char() {
 		return;
 	}
 
-	while (i != limit) {
+	clear_in_main();
+
+	set_cursor((COLUMNS - menus.length()) / 2, H_ROWS + 2);
+	cout << menus;
+	Sleep(50);
+
+	name = inputs((COLUMNS - menus.length()) / 2 + 7, H_ROWS + 2);
+
+	vector<string> data;
+	data.push_back("CRTCHAR");
+	data.push_back(log_in_user->get_id());
+	data.push_back(name);
+	string result = conn->send_data(data);
+
+	clear_in_main();
+	set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
+	cout << result;
+	enter_to_continue();
+
+}
+
+void delete_char() {
+	int limit = log_in_user->get_created_char();
+	string name, s;
+	string menus = "NAME :           ";
+
+	if (limit == 0) {
 		clear_in_main();
-
-		set_cursor((COLUMNS - menus.length()) / 2, H_ROWS + 2);
-		cout << menus;
-		Sleep(50);
-
-		name = inputs((COLUMNS - menus.length()) / 2 + 7, H_ROWS + 2);
-
-		vector<string> data;
-		data.push_back("CRTCHAR");
-		data.push_back(log_in_user->get_id());
-		data.push_back(name);
-		string result = conn->send_data(data);
-
-		clear_in_main();
-		set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
-		cout << result;
+		s = "No Character exist";
+		set_cursor((COLUMNS - s.length()) / 2, H_ROWS + 2);
+		cout << s;
 		enter_to_continue();
-		if (result == "New character created")
-			break;
-		continue;
+		return;
 	}
+
+	clear_in_main();
+
+	string chars = "";
+
+	for (int j = 0; j < limit; j++)
+		chars += "[" + to_string(j) + "] " + log_in_user->character[j]->get_name() + "  ";
+	set_cursor((COLUMNS - chars.length()) / 2, H_ROWS + 2);
+	cout << chars;
+
+	set_cursor((COLUMNS - menus.length()) / 2, H_ROWS + 4);
+	cout << menus;
+	Sleep(50);
+
+	name = inputs((COLUMNS - menus.length()) / 2 + 7, H_ROWS + 4);
+
+	vector<string> data;
+	data.push_back("DELCHAR");
+	data.push_back(name);
+	string result = conn->send_data(data);
+
+	clear_in_main();
+	set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
+	cout << result;
+	enter_to_continue();
 }
 
 string input_in_game() {
@@ -689,8 +750,8 @@ void play() {
 		else if (input == "store") {
 			item_store();
 		}
-		else if (input == "store") {
-			item_store();
+		else if (input == "inven") {
+			show_inven();
 		}
 		else if (input == "/save") {
 			thread t(t_save);
@@ -763,18 +824,23 @@ void clear_msgs() {
 }
 
 void item_store() {
-	vector<Item> items;
-	Item tmp(1, "health", 1, 1, "explain");
-	items.push_back(tmp);
 
 	int input = -1;
+
+	clear_msgs();
+
 	while (true) {
-		clear_msgs();
+		print_msg("Balance : " + to_string(selected_char->money));
+		print_msg("");
+
 		for (int i = items.size() - 1; i >= 0; i--) {
 			Item tmp = items[i];
-			string info = "[" + to_string(tmp.get_item_no()) + "] " + tmp.get_name() + "  " + to_string(tmp.get_class_no());
+			print_msg(tmp.get_explain());
+			string info = "[" + to_string(tmp.get_item_no()) + "] " + tmp.get_name() + "    " + to_string(tmp.get_cost()) + " gold";
 			print_msg(info);
+			print_msg("");
 		}
+
 		if (rand() % 10 != 0)
 			print_msg("Take a look.");
 		else
@@ -784,16 +850,41 @@ void item_store() {
 
 		input = atoi(input_in_game().c_str());
 
-		if (input >= 1 && input <= 10) {
-			selected_char->add_to_inven(items[input - 1]);
+		clear_msgs();
+		if (input >= 1 && input <= items.size()) {
+			if (selected_char->money >= items[input - 1].get_cost()) {
+				selected_char->add_to_inven(items[input - 1]);
+				print_msg("Buy " + items[input - 1].get_name() + " at " + to_string(items[input - 1].get_cost()) + " gold");
+				print_msg("");
+				selected_char->money -= items[input - 1].get_cost();
+			}
+			else {
+				print_msg("Not enough gold");
+				print_msg("");
+			}
 		}
 		else {
-			clear_msgs();
-			print_msg("Bye.");
+			print_msg("Bye");
 			print_msg("");
 			break;
 		}
 	}
+}
+
+void show_inven() {
+	if (selected_char->inventory.empty()) {
+		print_msg("");
+		print_msg("Inventory is empty");
+		return;
+	}
+
+	clear_msgs();
+	for (int i = selected_char->inventory.size() - 1 ; i >= 0 ; i--) {
+		print_msg("[" + to_string(i + 1) + "] " + selected_char->inventory[i].get_name() + " | QTY : " + to_string(selected_char->inventory_cnt[i]));
+	}
+	print_msg("");
+	print_msg("Invnetory");
+	print_msg("");
 }
 
 void start_stage() {
@@ -807,7 +898,7 @@ void start_stage() {
 		switch ((c = _getch())) {
 		case KEY_UP:
 			if (current.row > 0 && (maze[current.row - 1][current.col] & 2) != 0) {
-				current.row--;				
+				current.row--;
 				print_msg("Go up");
 				print_maze();
 				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
@@ -821,7 +912,7 @@ void start_stage() {
 			break;
 		case KEY_DOWN:
 			if (current.row < 9 && (maze[current.row][current.col] & 2) != 0) {
-				current.row++;				
+				current.row++;
 				print_msg("Go down");
 				print_maze();
 				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
@@ -865,11 +956,11 @@ void start_stage() {
 			input_com_maze();
 			c = 0;
 			break;
-		/*default:
-			print_msg("I can't understand");
-			break;*/
+			/*default:
+				print_msg("I can't understand");
+				break;*/
 		}
-		
+
 		//print_msg(to_string(c));
 	}
 
@@ -881,7 +972,7 @@ void start_stage() {
 	}
 
 	selected_char->state_num++;
-	
+
 	thread t(t_save);
 	print_msg("");
 	print_msg("!! Stage clear !!");

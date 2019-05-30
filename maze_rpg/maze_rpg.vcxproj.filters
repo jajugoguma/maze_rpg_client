@@ -47,12 +47,6 @@
     <ClInclude Include="maze_generators.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="resource1.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="user.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -64,6 +58,32 @@
     <ResourceCompile Include="maze_rpg.rc">
       <Filter>리소스 파일</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="audio\Apprehensive_at_Best.mp3">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\attack.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\attacked.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\death.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\footsteps.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\keystrok.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\monster.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
+    <Media Include="audio\monster_dead.wav">
+      <Filter>리소스 파일</Filter>
+    </Media>
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico">
