@@ -820,20 +820,7 @@ void play() {
 void print_main_UI() {
 	system("cls");
 
-	set_cursor(3, ROWS - 5);
-	cout << selected_char->name;
-	set_cursor(3, ROWS - 4);
-	cout << "Lv. " << selected_char->level;
-	set_cursor(3, ROWS - 3);
-	cout << "Stage : " << selected_char->state_num;
-	set_cursor(15, ROWS - 5);
-	cout << "HP";
-	set_cursor(15, ROWS - 4);
-	cout << selected_char->cur_hp << " / " << selected_char->max_hp;
-	set_cursor(15, ROWS - 3);
-	cout << "EXP";
-	set_cursor(15, ROWS - 2);
-	cout << selected_char->exp << " / " << selected_char->level * 10;
+	update_ui_maze();
 
 	string menu_input = ">>       ";
 	set_cursor((COLUMNS - menu_input.length()) / 2, 10);
@@ -868,7 +855,7 @@ void print_msg(string msg) {
 }
 void clear_msgs() {
 	for (int i = 0; i < 20; i++)
-		messages[i] = "";
+		print_msg("");
 }
 
 void item_store() {
@@ -931,6 +918,7 @@ void show_inven(int state) {
 		}
 		clear_msgs();
 		print_msg("[OTHER] EXIT");
+		print_msg("");
 		for (int i = selected_char->inventory.size() - 1; i >= 0; i--) {
 			print_msg("[" + to_string(i + 1) + "] " + selected_char->inventory[i].get_name() + " | QTY : " + to_string(selected_char->inventory_cnt[i]));
 		}
@@ -946,10 +934,9 @@ void show_inven(int state) {
 		else
 			break;
 	}
-	print_msg("");
-	print_msg("EXIT");
-	Sleep(1000);
 	clear_msgs();
+	print_msg("EXIT");
+	print_msg("");
 }
 
 void use_item(int item_no, int state) {
@@ -1015,6 +1002,10 @@ void start_stage() {
 	print_maze();
 
 	while (current.col != dest.col || current.row != dest.row) {
+		boolean is_act = true;
+		if (remain_turn >= 0)
+			remain_turn--;
+
 		switch ((c = _getch())) {
 		case KEY_UP:
 			if (current.row > 0 && (maze[current.row - 1][current.col] & 2) != 0) {
@@ -1074,19 +1065,36 @@ void start_stage() {
 			break;
 		case KEY_I:
 			show_inven();
+			is_act = false;
 			break;
 		case KEY_S:
 			status();
+			is_act = false;
 			break;
 		case KEY_SLASH:
 			input_com_maze();
+			is_act = false;
 			c = 0;
 			break;
 			/*default:
 				print_msg("I can't understand");
 				break;*/
 		}
+		if (is_act) {
+			if (remain_turn == 0) {
+				if (d_target != NULL)
+					(*d_target) -= using_item->get_effect();
+				if (i_target != NULL)
+					(*i_target) -= using_item->get_effect();
 
+				print_msg("The effect of the " + using_item->get_name() +"disappears.");
+
+				using_item = NULL;
+				int remain_turn = -1;
+				int *d_target = NULL;
+				int *i_target = NULL;
+			}
+		}
 		//print_msg(to_string(c));
 	}
 
@@ -1100,6 +1108,7 @@ void start_stage() {
 	selected_char->state_num++;
 
 	thread t(t_save);
+	update_ui_maze();
 	print_msg("");
 	print_msg("!! Stage clear !!");
 	print_msg("Escape the maze");
@@ -1126,18 +1135,29 @@ void input_com_maze() {
 }
 
 void update_ui_maze() {
+	string erase = "          ";
+
 	set_cursor(3, ROWS - 5);
 	cout << selected_char->name;
+
 	set_cursor(3, ROWS - 4);
 	cout << "Lv. " << selected_char->level;
+
 	set_cursor(3, ROWS - 3);
 	cout << "Stage : " << selected_char->state_num;
+
+	
 	set_cursor(15, ROWS - 5);
 	cout << "HP";
 	set_cursor(15, ROWS - 4);
+	cout << erase;
+	set_cursor(15, ROWS - 4);
 	cout << selected_char->cur_hp << " / " << selected_char->max_hp;
+
 	set_cursor(15, ROWS - 3);
 	cout << "EXP";
+	set_cursor(15, ROWS - 2);
+	cout << erase;
 	set_cursor(15, ROWS - 2);
 	cout << selected_char->exp << " / " << selected_char->level * 10;
 }
@@ -1218,7 +1238,7 @@ bool fight_enemy() {
 					print_msg("Attack! (" + to_string(e_hp) + ")");
 					print_msg("");
 				}
-				PlaySound("audio/attack.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
+				PlaySound("audio/attack.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
 				break;
 			case KEY_R:
 				if (rand() % 100 < selected_char->get_luck()) {

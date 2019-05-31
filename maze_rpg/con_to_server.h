@@ -18,7 +18,7 @@
 #pragma comment(lib, "ws2_32")
 
 #define IP   "127.0.0.1"
-#define PORT 2018
+#define PORT 8090
 
 #define MAXDATASIZE 1024 // max number of bytes we can get at once 
 
