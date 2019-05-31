@@ -17,7 +17,7 @@
 
 #pragma comment(lib, "ws2_32")
 
-#define IP   "127.0.0.1"
+#define IP   "203.249.22.41"
 #define PORT 8090
 
 #define MAXDATASIZE 1024 // max number of bytes we can get at once 
@@ -57,5 +57,3 @@ public:
 
 	void con_fail();
 };
-
-

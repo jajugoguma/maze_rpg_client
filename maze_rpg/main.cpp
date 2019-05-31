@@ -787,6 +787,7 @@ void play() {
 			print_msg("Lading maze...");
 			t.join();
 			print_msg("Enter the maze");
+			PlaySound("audio/door_open.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
 			start_stage();
 		}
 		else if (input == "store") {
@@ -878,6 +879,7 @@ void item_store() {
 			print_msg("");
 		}
 
+		PlaySound("audio/take_a_look.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 		if (rand() % 10 != 0)
 			print_msg("Take a look.");
 		else
@@ -973,6 +975,8 @@ void use_item(int item_no, int state) {
 
 				if (d_target != NULL) {
 					(*d_target) += using_item->get_effect();
+					if (d_target == &selected_char->cur_hp && selected_char->cur_hp > selected_char->max_hp)
+						selected_char->cur_hp = selected_char->max_hp;
 				}
 				else if (i_target != NULL) {
 					(*i_target) += using_item->get_effect();
@@ -1113,7 +1117,7 @@ void start_stage() {
 	print_msg("!! Stage clear !!");
 	print_msg("Escape the maze");
 	print_msg("");
-	t.join();
+	t.join(); 
 }
 
 void input_com_maze() {
@@ -1242,7 +1246,11 @@ bool fight_enemy() {
 				break;
 			case KEY_R:
 				if (rand() % 100 < selected_char->get_luck()) {
+					PlaySound("audio/Breathing_deep.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
+					print_msg("");
 					print_msg("Run away successfully");
+					Sleep(1000);
+					restore_msgs();
 					return true;
 				}
 				else
@@ -1267,7 +1275,7 @@ bool fight_enemy() {
 					print_msg("Defeated the enemy");
 
 					selected_char->exp += 10 + selected_char->state_num;
-					selected_char->money += selected_char->state_num * 5 + rand() % (selected_char->get_luck());
+					selected_char->money += selected_char->state_num * 20 + rand() % (selected_char->get_luck());
 
 					level_up();
 					update_ui_maze();
@@ -1277,11 +1285,14 @@ bool fight_enemy() {
 					return true;
 				}
 
-				selected_char->add_cur_hp(selected_char->def - e_atk);
+				double damage = selected_char->def - e_atk <= 0 ? -1.0 : selected_char->def - e_atk;
+
+				selected_char->add_cur_hp(damage);
 				print_msg("Attacked! (" + to_string(selected_char->get_cur_hp()) + ")");
 				print_msg("");
 				PlaySound("audio/attacked.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 				update_ui_maze();
+				Sleep(1000);
 
 				if (selected_char->get_cur_hp() <= 0) {
 					PlaySound(NULL, 0, 0); //반복재생 종료
