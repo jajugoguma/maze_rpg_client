@@ -42,7 +42,7 @@ typedef struct Maze_pos {
 
 HANDLE hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 
-const int INIT_MENUS = 4;
+const int INIT_MENUS = 5;
 const int COLUMNS = 79, ROWS = 39;
 const int H_COLUMNS = COLUMNS / 2, H_ROWS = ROWS / 2;
 const int MAZE_SIZE = 10;
@@ -85,6 +85,8 @@ void clear_in_main();
 bool log_in();
 //Sign up function
 void sign_up();
+//show ranking
+void ranking();
 //Show credit
 void credit();
 //Press enter to continue
@@ -97,6 +99,8 @@ bool choose_character();
 void create_char();
 
 void delete_char();
+
+boolean delete_acc();
 //Dispose of input error when input wrong type.
 void input_error();
 
@@ -127,6 +131,8 @@ void start_stage();
 void print_maze();
 
 void input_com_maze();
+
+void input_com_fight();
 
 void update_ui_maze();
 
@@ -181,7 +187,7 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
 }
 
 int main() {
-	bgm_on();
+	
 	//thread t(t_keystrok_sound);
 	//프로그램 강제 종료시 핸들러 설정
 	BOOL fSuccess = SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE);
@@ -197,10 +203,16 @@ int main() {
 	cur_visi_swit(false);
 	set_font_size();
 	system("mode con cols=79 lines=39 | title MAZE RPG");
+
+	//Sleep(30000);
+	bgm_on();
+
 	conn = new Connection();
 	get_item_infos();
 	print_welcome();
 	initial_menu();
+
+	
 
 	//t.join();
 	bgm_off();
@@ -444,7 +456,7 @@ void print_welcome() {
 void initial_menu() {
 	int i = 0;
 	int input = -1;
-	string menus[INIT_MENUS] = { "[1] LOG IN", "[2] SIGN UP", "[9] CREDIT", "[OTHER] EXIT" };
+	string menus[INIT_MENUS] = { "[1] LOG IN", "[2] SIGN UP","[3] Rank", "[9] CREDIT", "[OTHER] EXIT" };
 	while (true) {
 		string title = "MAZE RPG";
 		set_cursor((COLUMNS - title.length()) / 2, H_ROWS);
@@ -474,11 +486,12 @@ void initial_menu() {
 			break;
 		case 2:
 			sign_up();
-			continue;
+			break;
+		case 3:
+			ranking();
 			break;
 		case 9:
 			credit();
-			continue;
 			break;
 		default:
 			return;
@@ -552,6 +565,26 @@ void sign_up() {
 	enter_to_continue();
 }
 
+void ranking() {
+	string ranks[] = { "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th" };
+	vector<string> data;
+	data.push_back("RANK");
+	conn->read_data(data);
+	clear_in_main();
+
+	string line = "RANKING";
+	set_cursor((COLUMNS - line.length()) / 2, H_ROWS + 2);
+	cout << line;
+
+	for (int i = 0; i < 10; i++) {
+		string line = ranks[i] + ". " + conn->str_vector[0]->at(i);
+		set_cursor((COLUMNS - line.length()) / 2, H_ROWS + 4 + i);
+		cout << line;
+		Sleep(500);
+	}
+	enter_to_continue();
+}
+
 void credit() {
 	system("cls");
 	const int num_of_lines = 4;
@@ -605,20 +638,24 @@ bool choose_character() {
 		for (i = 0; i < MAX_CHARS; i++) {
 			tmp = to_string(i + 1);
 			tmp = "[" + tmp + "] " + chars[i];
-			set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + i);
+			set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + i + 2);
 			cout << tmp;
 			Sleep(50);
 		}
-		tmp = "[" + to_string(MAX_CHARS + 1) + "] New";
+		tmp = "[4] New";
 		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
 		cout << tmp;
 
-		tmp = "[" + to_string(MAX_CHARS + 2) + "] Delete";
+		tmp = "[5] Delete Character";
 		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
+		cout << tmp;
+
+		tmp = "[6] Delete Account";
+		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 3 + (++i));
 		cout << tmp;
 
 		tmp = "[OTHER] Log out";
-		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 2 + (++i));
+		set_cursor((COLUMNS - tmp.length()) / 2, H_ROWS + 3 + (++i));
 		cout << tmp;
 
 		string menu_input = ">>   <<";
@@ -669,6 +706,10 @@ bool choose_character() {
 			break;
 		case 5:
 			delete_char();
+			break;
+		case 6:
+			if (delete_acc())
+				return false;
 			break;
 		default:
 			return false;
@@ -731,7 +772,7 @@ void delete_char() {
 	string chars = "";
 
 	for (int j = 0; j < limit; j++)
-		chars += "[" + to_string(j) + "] " + log_in_user->character[j]->get_name() + "  ";
+		chars += "[" + to_string(j + 1) + "] " + log_in_user->character[j]->get_name() + "  ";
 	set_cursor((COLUMNS - chars.length()) / 2, H_ROWS + 2);
 	cout << chars;
 
@@ -740,6 +781,11 @@ void delete_char() {
 	Sleep(50);
 
 	name = inputs((COLUMNS - menus.length()) / 2 + 7, H_ROWS + 4);
+
+	if (name.length() < 2 && atoi(name.c_str()) != 0) {
+		int char_num = atoi(name.c_str());
+		name = log_in_user->character[char_num - 1]->get_name();
+	}
 
 	vector<string> data;
 	data.push_back("DELCHAR");
@@ -750,6 +796,53 @@ void delete_char() {
 	set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
 	cout << result;
 	enter_to_continue();
+}
+
+boolean delete_acc() {
+	clear_in_main();
+
+	string show1 = "Delete all characters and datas";
+
+	set_cursor((COLUMNS - show1.length()) / 2, H_ROWS + 2);
+	cout << show1;
+
+	string show2 = "Are you sure?";
+
+	set_cursor((COLUMNS - show2.length()) / 2, H_ROWS + 3);
+	cout << show2;
+	
+	string menus = "[Y / N]";
+
+	set_cursor((COLUMNS - menus.length()) / 2, H_ROWS + 4);
+	cout << menus;
+	Sleep(50);
+
+	string input = inputs(COLUMNS / 2, H_ROWS + 5);
+
+	while (true) {
+		if (input == "Y" || input == "y") {
+			vector<string> data;
+			data.push_back("DELACC");
+			data.push_back(log_in_user->get_id());
+			string result = conn->send_data(data);
+
+			clear_in_main();
+			set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
+			cout << result;
+			enter_to_continue();
+
+			return true;
+		}
+		
+		string result = "Canceled";
+
+		clear_in_main();
+		set_cursor((COLUMNS - result.length()) / 2, H_ROWS + 2);
+		cout << result;
+		enter_to_continue();
+		
+		return false;
+	}
 }
 
 string input_in_game() {
@@ -783,9 +876,10 @@ void play() {
 			print_msg(" ");
 		}
 		else if (input == "start") {
-			thread t(t_maze_gen);
+			//thread t(t_maze_gen);
 			print_msg("Lading maze...");
-			t.join();
+			t_maze_gen();
+			//t.join();
 			print_msg("Enter the maze");
 			PlaySound("audio/door_open.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
 			start_stage();
@@ -945,15 +1039,13 @@ void use_item(int item_no, int state) {
 	Item *use = &selected_char->inventory[item_no];
 	int *use_cnt = &selected_char->inventory_cnt[item_no];
 
-	if (state = 0) {
+	if (state == 0) {
 		if (use->get_name().find("HP") == string::npos) {
 			print_msg("This item can not be used now");
-			return;
 		}
 	}
-	else if (remain_turn > 0) {
+	else if (remain_turn > 0 && use->get_name().find("HP") == string::npos) {
 		print_msg("Can not use item now");
-		return;
 	}
 	else {
 		print_msg("Use " + use->get_name());
@@ -1005,102 +1097,107 @@ void start_stage() {
 
 	print_maze();
 
+
 	while (current.col != dest.col || current.row != dest.row) {
-		boolean is_act = true;
-		if (remain_turn >= 0)
-			remain_turn--;
+		while (_kbhit()) {
+			boolean is_act = true;
+			if (remain_turn >= 0)
+				remain_turn--;
 
-		switch ((c = _getch())) {
-		case KEY_UP:
-			if (current.row > 0 && (maze[current.row - 1][current.col] & 2) != 0) {
-				current.row--;
-				print_msg("Go up");
-				print_maze();
-				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
-				if (c != 0 && !fight_enemy())
-					return;
-			}
-			else {
-				print_msg("I can't go that way");
+			switch ((c = _getch())) {
+			case KEY_UP:
+				if (current.row > 0 && (maze[current.row - 1][current.col] & 2) != 0) {
+					current.row--;
+					print_msg("Go up");
+					print_maze();
+					PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
+					if (c != 0 && !fight_enemy())
+						return;
+				}
+				else {
+					print_msg("I can't go that way");
+					c = 0;
+				}
+				break;
+			case KEY_DOWN:
+				if (current.row < 9 && (maze[current.row][current.col] & 2) != 0) {
+					current.row++;
+					print_msg("Go down");
+					print_maze();
+					PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
+					if (c != 0 && !fight_enemy())
+						return;
+				}
+				else {
+					print_msg("I can't go that way");
+					c = 0;
+				}
+				break;
+			case KEY_LEFT:
+				if (current.col > 0 && (maze[current.row][current.col - 1] & 1) != 0) {
+					current.col--;
+					print_msg("Go left");
+					print_maze();
+					PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
+					if (c != 0 && !fight_enemy())
+						return;
+				}
+				else {
+					print_msg("I can't go that way");
+					c = 0;
+				}
+				break;
+			case KEY_RIGHT:
+				if (current.col < 9 && (maze[current.row][current.col] & 1) != 0) {
+					current.col++;
+					print_msg("Go right");
+					print_maze();
+					PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
+					if (c != 0 && !fight_enemy())
+						return;
+				}
+				else {
+					print_msg("I can't go that way");
+					c = 0;
+				}
+				break;
+			case KEY_I:
+				show_inven();
+				is_act = false;
+				break;
+			case KEY_S:
+				status();
+				is_act = false;
+				break;
+			case KEY_SLASH:
+				input_com_maze();
+				is_act = false;
 				c = 0;
+				break;
+				/*default:
+					print_msg("I can't understand");
+					break;*/
 			}
-			break;
-		case KEY_DOWN:
-			if (current.row < 9 && (maze[current.row][current.col] & 2) != 0) {
-				current.row++;
-				print_msg("Go down");
-				print_maze();
-				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
-				if (c != 0 && !fight_enemy())
-					return;
+
+			if (is_act) {
+				if (remain_turn == 0) {
+					if (d_target != NULL)
+						(*d_target) -= using_item->get_effect();
+					if (i_target != NULL)
+						(*i_target) -= using_item->get_effect();
+
+					print_msg("The effect of the " + using_item->get_name() + "disappears.");
+
+					using_item = NULL;
+					int remain_turn = -1;
+					int *d_target = NULL;
+					int *i_target = NULL;
+				}
 			}
-			else {
-				print_msg("I can't go that way");
-				c = 0;
-			}
-			break;
-		case KEY_LEFT:
-			if (current.col > 0 && (maze[current.row][current.col - 1] & 1) != 0) {
-				current.col--;
-				print_msg("Go left");
-				print_maze();
-				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
-				if (c != 0 && !fight_enemy())
-					return;
-			}
-			else {
-				print_msg("I can't go that way");
-				c = 0;
-			}
-			break;
-		case KEY_RIGHT:
-			if (current.col < 9 && (maze[current.row][current.col] & 1) != 0) {
-				current.col++;
-				print_msg("Go right");
-				print_maze();
-				PlaySound("audio/footsteps.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
-				if (c != 0 && !fight_enemy())
-					return;
-			}
-			else {
-				print_msg("I can't go that way");
-				c = 0;
-			}
-			break;
-		case KEY_I:
-			show_inven();
-			is_act = false;
-			break;
-		case KEY_S:
-			status();
-			is_act = false;
-			break;
-		case KEY_SLASH:
-			input_com_maze();
-			is_act = false;
-			c = 0;
-			break;
-			/*default:
-				print_msg("I can't understand");
-				break;*/
+			//print_msg(to_string(c));
 		}
-		if (is_act) {
-			if (remain_turn == 0) {
-				if (d_target != NULL)
-					(*d_target) -= using_item->get_effect();
-				if (i_target != NULL)
-					(*i_target) -= using_item->get_effect();
-
-				print_msg("The effect of the " + using_item->get_name() +"disappears.");
-
-				using_item = NULL;
-				int remain_turn = -1;
-				int *d_target = NULL;
-				int *i_target = NULL;
-			}
-		}
-		//print_msg(to_string(c));
 	}
+
 
 	string empty = "                              ";
 
@@ -1117,19 +1214,47 @@ void start_stage() {
 	print_msg("!! Stage clear !!");
 	print_msg("Escape the maze");
 	print_msg("");
-	t.join(); 
+	t.join();
 }
 
 void input_com_maze() {
 	string input = input_in_game();
 
 	if (input == "heal") {
-		selected_char->add_cur_hp(10.5);
+		//selected_char->add_cur_hp(10.5);
 		update_ui_maze();
 	}
 	else if (input == "kick") {
-		selected_char->add_cur_hp(-10.6);
+		//selected_char->add_cur_hp(-10.6);
 		update_ui_maze();
+	}
+	else if (input == "help") {
+		print_msg(" ");
+		print_msg("/help : View commands");
+		print_msg("I : show inventory");
+		print_msg("S : Show and Set status");
+		print_msg("Arrow key : move");
+		print_msg("##### Commands #####");
+		print_msg(" ");
+	}
+
+	string menu_input = ">>       ";
+	set_cursor((COLUMNS - menu_input.length()) / 2, 10);
+	cout << menu_input.substr(0, 2) << UNDERLINE << menu_input.substr(2);
+	cout << DEUNDERLINE << "                 ";
+}
+
+void input_com_fight() {
+	string input = input_in_game();
+
+	if (input == "help") {
+		print_msg(" ");
+		print_msg("/help : View commands");
+		print_msg("I : show inventory");
+		print_msg("R : Run away");
+		print_msg("A : Attack");
+		print_msg("##### Commands #####");
+		print_msg(" ");
 	}
 
 	string menu_input = ">>       ";
@@ -1150,7 +1275,7 @@ void update_ui_maze() {
 	set_cursor(3, ROWS - 3);
 	cout << "Stage : " << selected_char->state_num;
 
-	
+
 	set_cursor(15, ROWS - 5);
 	cout << "HP";
 	set_cursor(15, ROWS - 4);
@@ -1220,7 +1345,7 @@ bool fight_enemy() {
 	if (spawn_enemy()) {
 		PlaySound("audio/monster.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_LOOP); // 반복재생
 		print_msg("Enemy has appeared");
-		double e_atk = selected_char->state_num * 1.5;
+		double e_atk = selected_char->state_num * 2.5;
 		double e_hp = selected_char->state_num * 10 + 40;
 		while (e_hp > 0) {
 			srand((unsigned)time(NULL));
@@ -1246,11 +1371,10 @@ bool fight_enemy() {
 				break;
 			case KEY_R:
 				if (rand() % 100 < selected_char->get_luck()) {
-					PlaySound("audio/Breathing_deep.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생
+					PlaySound("audio/Breathing_deep.wav", GetModuleHandle(NULL), SND_FILENAME | SND_SYNC | SND_NODEFAULT); //한번 재생		
+					restore_msgs();
 					print_msg("");
 					print_msg("Run away successfully");
-					Sleep(1000);
-					restore_msgs();
 					return true;
 				}
 				else
@@ -1261,7 +1385,8 @@ bool fight_enemy() {
 				is_act = false;
 				break;
 			case KEY_SLASH:
-				input_com_maze();
+				input_com_fight();
+				is_act = false;
 				continue;
 			default:
 				continue;
@@ -1271,21 +1396,19 @@ bool fight_enemy() {
 					PlaySound(NULL, 0, 0); //반복재생 종료
 					PlaySound("audio/monster_dead.wav", GetModuleHandle(NULL), SND_FILENAME | SND_ASYNC | SND_NODEFAULT); //한번 재생
 
-					clear_msgs();
-					print_msg("Defeated the enemy");
-
 					selected_char->exp += 10 + selected_char->state_num;
 					selected_char->money += selected_char->state_num * 20 + rand() % (selected_char->get_luck());
 
 					level_up();
 					update_ui_maze();
 
-					Sleep(1000);
 					restore_msgs();
+					print_msg("");
+					print_msg("Defeated the enemy");
 					return true;
 				}
 
-				double damage = selected_char->def - e_atk <= 0 ? -1.0 : selected_char->def - e_atk;
+				double damage = selected_char->def - e_atk >= 0 ? -2.0 : selected_char->def - e_atk;
 
 				selected_char->add_cur_hp(damage);
 				print_msg("Attacked! (" + to_string(selected_char->get_cur_hp()) + ")");
@@ -1327,12 +1450,14 @@ bool fight_enemy() {
 			}
 		}
 	}
+
 	return true;
 }
 
 bool spawn_enemy() {
 	srand((unsigned)time(NULL));
-	if ((rand() % 100) < 50 - selected_char->get_luck())
+	int percent = 50 - selected_char->get_luck() < 15 ? 15 : 50 - selected_char->get_luck();
+	if ((rand() % 100) < percent)
 		return true;
 	return false;
 }

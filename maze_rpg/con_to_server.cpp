@@ -129,6 +129,20 @@ void Connection::read_data(vector<string> datas) {
 			j++;
 		}
 	}
+
+	else if (datas[0] == "RANK" && buf[0] != '\0') {
+		int i = 0, j = 0;
+
+		str_vector.push_back(new vector<string>);
+
+		char *token = strtok(buf, ",");
+		while (token) {
+			str_vector.push_back(new vector<string>);
+
+			str_vector[i]->push_back(token);
+			token = strtok(NULL, ",");
+		}
+	}
 }
 
 string Connection::send_data(vector<string> datas) {
